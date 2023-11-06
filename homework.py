@@ -1,12 +1,12 @@
+import logging
 import os
-import requests
-import schedule
 import time
 from datetime import datetime
-import logging
-from telegram import Bot
+from locale import LC_TIME, setlocale
+
+import requests
 from dotenv import load_dotenv
-from locale import setlocale, LC_TIME
+from telegram import Bot
 
 load_dotenv()
 
@@ -142,7 +142,7 @@ def main():
                     if message:
                         send_message(bot, message)
 
-            schedule.run_pending()
+            time.sleep(RETRY_PERIOD)
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
