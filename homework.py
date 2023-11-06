@@ -6,6 +6,7 @@ from datetime import datetime
 import logging
 from telegram import Bot
 from dotenv import load_dotenv
+from locale import setlocale, LC_TIME
 
 load_dotenv()
 
@@ -26,11 +27,14 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
+
+setlocale(LC_TIME, 'ru_RU.UTF-8')
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('ya_hw_bot.log')
+        logging.FileHandler('ya_hw_bot.log', encoding='utf-8')
     ]
 )
 logger = logging.getLogger('root')
@@ -74,6 +78,7 @@ def get_api_answer(timestamp):
     try:
         homework_statuses = requests.get(url, headers=HEADERS, params=payload)
         response = homework_statuses.json()
+        logger.debug(f'Response from API: {response}')
 
         if homework_statuses.status_code != 200:
             message = (f'Ошибка при запросе к API'
@@ -132,7 +137,7 @@ def main():
             timestamp = start_timestamp
             response = get_api_answer(timestamp)
             if response and check_response(response):
-                data = response['data']
+                data = response['homeworks']
                 for homework in data:
                     message = parse_status(homework)
                     if message:
