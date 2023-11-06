@@ -42,18 +42,18 @@ logger = logging.getLogger('root')
 
 def check_tokens():
     """Проверка наличия всех необходимых токенов."""
-    required_env_vars = [
-        'PRACTICUM_TOKEN',
-        'TELEGRAM_TOKEN',
-        'TELEGRAM_CHAT_ID',
-    ]
+    required_env_vars = {
+        "PRACTICUM_TOKEN": PRACTICUM_TOKEN,
+        "TELEGRAM_TOKEN": TELEGRAM_TOKEN,
+        "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID,
+    }
     missing_tokens = []
 
-    for env_var in required_env_vars:
-        if os.getenv(env_var) is None or not os.getenv(env_var).strip():
-            missing_tokens.append(env_var)
+    for env_key, env_value in required_env_vars.items():
+        if env_value is None or not env_value.strip():
+            missing_tokens.append(env_key)
             logger.critical(
-                f'Отсутствует переменная окружения или она пуста: {env_var}')
+                f'Отсутствует переменная окружения или она пуста: {env_key}')
 
     return not missing_tokens
 
