@@ -10,7 +10,7 @@ from locale import setlocale, LC_TIME
 
 load_dotenv()
 
-start_date = datetime(2023, 10, 1)
+start_date = datetime(2023, 11, 1)
 start_timestamp = int(start_date.timestamp())
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
@@ -50,13 +50,12 @@ def check_tokens():
     missing_tokens = []
 
     for env_var in required_env_vars:
-        if os.getenv(env_var) is None:
+        if os.getenv(env_var) is None or not os.getenv(env_var).strip():
             missing_tokens.append(env_var)
-            logger.critical(f'Отсутствует переменная окружения: {env_var}')
+            logger.critical(
+                f'Отсутствует переменная окружения или она пуста: {env_var}')
 
-    if missing_tokens:
-        return False
-    return True
+    return not missing_tokens
 
 
 def send_message(bot, message):
