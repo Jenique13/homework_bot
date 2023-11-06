@@ -2,7 +2,6 @@ import logging
 import os
 import time
 from datetime import datetime
-from locale import LC_TIME, setlocale
 
 import requests
 from dotenv import load_dotenv
@@ -27,8 +26,6 @@ HOMEWORK_VERDICTS = {
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
 }
 
-
-setlocale(LC_TIME, 'ru_RU.UTF-8')
 
 logging.basicConfig(
     level=logging.DEBUG,
