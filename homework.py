@@ -2,9 +2,11 @@ import logging
 import os
 import time
 from datetime import datetime
+from http import HTTPStatus
 
 import requests
 from dotenv import load_dotenv
+import telegram
 from telegram import Bot
 
 load_dotenv()
@@ -40,19 +42,27 @@ logger = logging.getLogger('root')
 def check_tokens():
     """Проверка наличия всех необходимых токенов."""
     required_env_vars = {
-        "PRACTICUM_TOKEN": PRACTICUM_TOKEN,
-        "TELEGRAM_TOKEN": TELEGRAM_TOKEN,
-        "TELEGRAM_CHAT_ID": TELEGRAM_CHAT_ID,
+        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
+        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
+        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
     }
-    missing_tokens = []
 
-    for env_key, env_value in required_env_vars.items():
-        if env_value is None or not env_value.strip():
-            missing_tokens.append(env_key)
+    if not all(required_env_vars.values()):
+        missing_tokens = ([env_key for env_key,
+                           env_value in required_env_vars.items()
+                           if not env_value])
+        for env_key in missing_tokens:
             logger.critical(
                 f'Отсутствует переменная окружения или она пуста: {env_key}')
+        return False
 
-    return not missing_tokens
+    return True
+
+
+class TelegramSendError(Exception):
+    """Исключение, возникающее при ошибках отправки сообщений в Телеграм."""
+
+    pass
 
 
 def send_message(bot, message):
@@ -60,10 +70,11 @@ def send_message(bot, message):
     chat_id = TELEGRAM_CHAT_ID
     try:
         bot.send_message(chat_id=chat_id, text=message)
-        logger.debug(f"Sent message to chat ID {chat_id}: {message}")
-    except Exception as e:
-        print(f'Ошибка отправки сообщения в Телеграм: {str(e)}')
-        raise
+        logger.debug(f'Sent message to chat ID {chat_id}: {message}')
+    except telegram.TelegramError as e:
+        error_message = f'Ошибка отправки сообщения в Телеграм: {str(e)}'
+        logger.error(error_message)
+        raise TelegramSendError(error_message)
 
 
 def get_api_answer(timestamp):
@@ -76,18 +87,16 @@ def get_api_answer(timestamp):
         response = homework_statuses.json()
         logger.debug(f'Response from API: {response}')
 
-        if homework_statuses.status_code != 200:
-            message = (f'Ошибка при запросе к API'
-                       f': {homework_statuses.status_code}')
-            print(message)
+        if homework_statuses.status_code != HTTPStatus.OK:
+            message = (
+                f'Ошибка при запросе к API: {homework_statuses.status_code}')
             send_message(Bot(token=TELEGRAM_TOKEN), message)
 
-        return response
     except Exception as e:
         message = str(e)
-        print(message)
         send_message(Bot(token=TELEGRAM_TOKEN), message)
-        return response
+
+    return response
 
 
 def check_response(response):
@@ -99,23 +108,29 @@ def check_response(response):
     ):
         return True
     raise TypeError(
-        "Неверная структура данных в ответе API домашки."
+        'Неверная структура данных в ответе API домашки.'
     )
 
 
 def parse_status(homework):
     """Проверяем статус домашней работы."""
     if isinstance(homework, dict) and 'homework_name' in homework:
-        homework_name = homework['homework_name']
-        status = homework.get('status', 'unknown')
-        verdict = HOMEWORK_VERDICTS.get(
-            status, f'Неизвестный статус: {status}')
-        if status == 'unknown':
-            raise KeyError(f"Недокументированный статус: {status}")
-        return (f'Изменился статус проверки работы '
-                f'"{homework_name}". {verdict}')
+        homework_name = homework.get('homework_name', 'Неизвестное имя')
+        status = homework.get('status')
+
+        if status is not None and status != 'unknown':
+            verdict = HOMEWORK_VERDICTS.get(
+                status, f'Неизвестный статус: {status}')
+            return (f'Изменился статус проверки работы '
+                    f'"{homework_name}". {verdict}')
+
+        raise KeyError(
+            f'Недокументированный статус: '
+            f'{status if status is not None else "None"}'
+        )
+
     else:
-        raise KeyError("homework_name ключ отсутствует в ответе API домашки.")
+        raise KeyError('homework_name ключ отсутствует в ответе API домашки.')
 
 
 def main():
