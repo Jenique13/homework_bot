@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 import telegram
 from telegram import Bot
 
+from exeptions import TelegramSendError
+
 load_dotenv()
 
 start_date = datetime(2023, 11, 1)
@@ -57,12 +59,6 @@ def check_tokens():
         return False
 
     return True
-
-
-class TelegramSendError(Exception):
-    """Исключение, возникающее при ошибках отправки сообщений в Телеграм."""
-
-    pass
 
 
 def send_message(bot, message):
@@ -158,7 +154,6 @@ def main():
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
-            print(message)
         time.sleep(RETRY_PERIOD)
 
 
