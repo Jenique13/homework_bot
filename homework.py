@@ -43,22 +43,7 @@ logger = logging.getLogger('root')
 
 def check_tokens():
     """Проверка наличия всех необходимых токенов."""
-    required_env_vars = {
-        'PRACTICUM_TOKEN': PRACTICUM_TOKEN,
-        'TELEGRAM_TOKEN': TELEGRAM_TOKEN,
-        'TELEGRAM_CHAT_ID': TELEGRAM_CHAT_ID,
-    }
-
-    if not all(required_env_vars.values()):
-        missing_tokens = ([env_key for env_key,
-                           env_value in required_env_vars.items()
-                           if not env_value])
-        for env_key in missing_tokens:
-            logger.critical(
-                f'Отсутствует переменная окружения или она пуста: {env_key}')
-        return False
-
-    return True
+    return all([PRACTICUM_TOKEN, TELEGRAM_TOKEN, TELEGRAM_CHAT_ID])
 
 
 def send_message(bot, message):
@@ -132,6 +117,7 @@ def parse_status(homework):
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
+        logger.critical('Отсутствует переменная окружения или она пуста')
         raise ValueError(
             'Ошибка глобальной переменной: '
             'Отсутствуют необходимые токены.'
